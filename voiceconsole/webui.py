@@ -17,55 +17,86 @@ INDEX_HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>语音指令控制台 · Web 面板</title>
 <style>
-  :root { --bg:#0f1420; --panel:#1a2130; --ink:#e6ebf4; --dim:#8b96a8;
-          --ok:#3fb950; --warn:#d29922; --err:#f85149; --accent:#58a6ff; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--ink); font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif; padding:24px; }
-  h1 { font-size:20px; margin-bottom:4px; }
-  .sub { color:var(--dim); font-size:12px; margin-bottom:16px; }
-  .panel { background:var(--panel); border:1px solid #2a3446; border-radius:10px; padding:16px; margin-bottom:14px; }
-  .row { display:flex; gap:10px; align-items:center; }
-  input[type=text] { flex:1; background:#0d1220; color:var(--ink); border:1px solid #2a3446;
-    border-radius:8px; padding:10px 12px; font-size:14px; }
-  input[type=text]:focus { outline:none; border-color:var(--accent); }
-  button { background:#253046; color:var(--ink); border:1px solid #33405c; border-radius:8px;
-    padding:9px 14px; cursor:pointer; font-size:13px; }
-  button:hover { background:#2f3d58; }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  button.primary { background:var(--accent); color:#04101f; border-color:var(--accent); font-weight:600; }
-  button.danger { background:#3a1d1d; color:#ffb3b0; border-color:#5c3330; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; }
-  .chip { font-size:12px; padding:6px 10px; }
-  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
-  .dot.off { background:#4a5568; } .dot.rec { background:var(--err); animation:blink 1s infinite; }
-  @keyframes blink { 50% { opacity:.2; } }
-  #log { font-family:Consolas,monospace; font-size:12.5px; max-height:340px; overflow-y:auto; }
-  .line { padding:5px 8px; border-bottom:1px solid #141b29; white-space:pre-wrap; word-break:break-all; }
-  .t { color:var(--dim); margin-right:8px; }
-  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); } .info { color:var(--accent); }
-  #modal { position:fixed; inset:0; background:rgba(5,8,15,.75); display:none; align-items:center; justify-content:center; }
-  #modal .box { background:var(--panel); border:1px solid var(--warn); border-radius:12px; padding:22px; width:420px; }
-  #modal .q { margin-bottom:14px; }
-  .muted { color:var(--dim); font-size:12px; }
+/* ============ 设计令牌（kb-ui 风格） ============ */
+:root {
+  --kb-color-primary:#22c55e; --kb-color-success:#4ade80; --kb-color-warning:#facc15;
+  --kb-color-danger:#f87171; --kb-color-info:#38bdf8;
+  --kb-color-bg:#0a0f0a; --kb-color-bg-elevated:#101810; --kb-color-border:#1f3d23;
+  --kb-color-text-1:#86efac; --kb-color-text-2:#4ade80; --kb-color-text-3:#22c55e;
+  --kb-radius-sm:0; --kb-radius-md:0; --kb-radius-lg:0; --kb-radius-round:0;
+  --kb-shadow-1:none; --kb-shadow-2:none;
+  --kb-font:"Cascadia Code","Consolas","Courier New",ui-monospace,monospace;
+  --kb-mono:"Cascadia Code","Consolas","Courier New",monospace;
+  --kb-space-1:4px; --kb-space-2:8px; --kb-space-3:12px; --kb-space-4:16px; --kb-space-5:20px; --kb-space-6:24px;
+}
+/* ============ 组件基座 ============ */
+* { box-sizing:border-box; }
+body { margin:0; background:var(--kb-color-bg); color:var(--kb-color-text-1);
+       font:15px/1.6 var(--kb-font); padding:var(--kb-space-6); transition:background .2s,color .2s; }
+.wrap { max-width:860px; margin:0 auto; }
+.topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:var(--kb-space-4); flex-wrap:wrap; }
+h1 { font-size:21px; margin:0; font-weight:600; letter-spacing:.5px; }
+.sub { color:var(--kb-color-text-3); font-size:13px; margin:6px 0 0; }
+.panel { background:var(--kb-color-bg-elevated); border:1px solid var(--kb-color-border);
+         border-radius:var(--kb-radius-lg); padding:var(--kb-space-4); margin-bottom:var(--kb-space-4); }
+.row { display:flex; gap:10px; align-items:center; }
+input[type=text] { flex:1; background:var(--kb-color-bg); color:var(--kb-color-text-1);
+  border:1px solid var(--kb-color-border); border-radius:var(--kb-radius-md);
+  padding:10px 12px; font-size:14px; font-family:inherit; transition:border-color .15s; }
+input[type=text]:focus { outline:none; border-color:var(--kb-color-primary); }
+button { background:var(--kb-color-bg-elevated); color:var(--kb-color-text-1);
+  border:1px solid var(--kb-color-border); border-radius:var(--kb-radius-md);
+  padding:9px 16px; cursor:pointer; font-size:13.5px; font-family:inherit;
+  transition:border-color .15s,background .15s; }
+button:hover { border-color:var(--kb-color-primary); }
+button:disabled { opacity:.45; cursor:not-allowed; }
+button.primary { background:var(--kb-color-primary); color:var(--kb-color-bg); border-color:var(--kb-color-primary); font-weight:600; }
+button.primary:hover { filter:brightness(1.08); }
+button.danger { background:var(--kb-color-danger); color:#fff; border-color:var(--kb-color-danger); }
+.chips { display:flex; flex-wrap:wrap; gap:8px; }
+.chip { font-size:12.5px; padding:6px 12px; }
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+.dot.off { background:var(--kb-color-text-3); } .dot.rec { background:var(--kb-color-danger); animation:blink 1s infinite; }
+@keyframes blink { 50% { opacity:.2; } }
+#log { font-family:var(--kb-mono); font-size:12.5px; max-height:340px; overflow-y:auto;
+       background:var(--kb-color-bg); border:1px solid var(--kb-color-border); border-radius:var(--kb-radius-md); }
+.line { padding:5px 10px; border-bottom:1px solid var(--kb-color-border); white-space:pre-wrap; word-break:break-all; }
+.t { color:var(--kb-color-text-3); margin-right:8px; }
+.ok { color:var(--kb-color-success); } .warn { color:var(--kb-color-warning); } .err { color:var(--kb-color-danger); } .info { color:var(--kb-color-primary); }
+#modal { position:fixed; inset:0; background:color-mix(in srgb,var(--kb-color-bg) 60%,transparent);
+         display:none; align-items:center; justify-content:center; z-index:100; }
+#modal .box { background:var(--kb-color-bg-elevated); border:1px solid var(--kb-color-warning);
+              border-radius:var(--kb-radius-lg); padding:22px; width:440px; max-width:92vw;
+              box-shadow:var(--kb-shadow-2); }
+#modal .q { margin-bottom:14px; font-size:14.5px; }
+.muted { color:var(--kb-color-text-3); font-size:12px; }
+.panel-head { font-size:12.5px; color:var(--kb-color-text-3); letter-spacing:1px;
+              text-transform:uppercase; margin-bottom:10px; font-weight:500; }
 </style>
 </head>
 <body>
-  <h1>🎙️ 语音指令控制台 · Web 面板</h1>
-  <div class="sub">本地控制台（127.0.0.1）。输入自然语言指令，如「执行 dir」「找 report」「打开桌面」。</div>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>语音指令控制台 <span style="color:var(--kb-color-text-3);font-weight:400;font-size:13px">Web 面板</span></h1>
+      <div class="sub">本地控制台（127.0.0.1）。输入自然语言指令，如「执行 dir」「找 report」「打开桌面」。</div>
+    </div>
+      </div>
 
   <div class="panel">
     <div class="row">
-      <input type="text" id="cmd" placeholder="输入指令…（Enter 发送）">
+      <input type="text" id="cmd" placeholder="输入指令…（Enter 发送）" autocomplete="off">
       <button class="primary" id="send">执行</button>
-      <button id="rec" title="录音 5 秒并识别（需麦克风与 sounddevice）">🎤 录音</button>
+      <button id="rec" title="录音 5 秒并识别（需麦克风与 sounddevice）">录音</button>
     </div>
     <div class="muted" style="margin-top:10px" id="recHint"><span class="dot off" id="dot"></span>录音按钮需安装 sounddevice/soundfile 且有麦克风</div>
   </div>
 
   <div class="panel">
-    <div class="sub" style="margin-bottom:8px">快捷演示（直接调用 MCP 工具）</div>
+    <div class="panel-head">快捷演示</div>
     <div class="chips" id="chips">
       <button class="chip">执行 dir</button>
       <button class="chip">找 voiceconsole</button>
@@ -75,19 +106,20 @@ INDEX_HTML = r"""<!DOCTYPE html>
   </div>
 
   <div class="panel">
-    <div class="sub" style="margin-bottom:8px">执行日志</div>
+    <div class="panel-head">执行日志</div>
     <div id="log"><div class="line muted">等待指令…</div></div>
   </div>
+</div>
 
-  <div id="modal">
-    <div class="box">
-      <div class="q" id="modalQ">确认执行该操作？</div>
-      <div class="row">
-        <button class="danger" style="flex:1" id="no">取消</button>
-        <button class="primary" style="flex:1" id="yes">确认执行</button>
-      </div>
+<div id="modal">
+  <div class="box">
+    <div class="q" id="modalQ">确认执行该操作？</div>
+    <div class="row">
+      <button class="danger" style="flex:1" id="no">取消</button>
+      <button class="primary" style="flex:1" id="yes">确认执行</button>
     </div>
   </div>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -160,6 +192,7 @@ $("rec").onclick = async () => {
 </script>
 </body>
 </html>
+
 """
 
 
