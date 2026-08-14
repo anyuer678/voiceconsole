@@ -1,0 +1,9 @@
+{
+  "stt_engine": "auto",
+  "tts_engine": "edge",
+  "hotkey": "<ctrl>+<shift>+space",
+  "allowlist": [],
+  "denylist": [],
+  "confirm_mode": "dangerous-only",
+  "timeout_ms": 10000
+}

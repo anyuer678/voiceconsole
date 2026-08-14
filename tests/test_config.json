@@ -1,0 +1,9 @@
+{
+  "stt_engine": "local",
+  "tts_engine": "system",
+  "hotkey": "<ctrl>+<shift>+space",
+  "allowlist": [],
+  "denylist": [],
+  "confirm_mode": "dangerous-only",
+  "timeout_ms": 3000
+}
