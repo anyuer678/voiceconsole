@@ -66,6 +66,9 @@ def test_deny_injection():
         "cat < file",
         "ls $(whoami)",
         "echo `id`",
+        "dir & whoami",          # 单 & 后台/拼接注入
+        "dir & del x",
+        "echo x & rm -rf /",
     ]:
         assert e.check_command(cmd) == SafetyVerdict.DENIED, cmd
 

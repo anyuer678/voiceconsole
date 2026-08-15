@@ -13,7 +13,7 @@ ALLOW_PREFIXES = (
     "systeminfo", "tasklist", "dir", "ping", "ps", "top",
 )
 CONFIRM_TIMEOUT_S = 30
-_SHELL_METACHARS = (";", "&&", "||", "|", ">", "<", "`", "$(")
+_SHELL_METACHARS = (";", "&&", "||", "|", ">", "<", "`", "$(", "&")
 
 
 class SafetyVerdict:
