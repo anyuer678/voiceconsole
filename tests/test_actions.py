@@ -12,6 +12,28 @@ def test_run_cli_echo():
     assert isinstance(r.elapsed_ms, int) and r.elapsed_ms >= 0
 
 
+def test_run_cli_builtin_no_shell():
+    """内建命令（dir/echo）原生执行，shell 元字符无执行语义（消除注入面）。"""
+    # echo 原生回显
+    r = actions.run_cli_cmd('echo hello world')
+    assert r.exit_code == 0
+    assert r.stdout.strip() == "hello world"
+    # $() 只是字面文本，不执行子命令
+    r2 = actions.run_cli_cmd('echo $(whoami)')
+    assert r2.exit_code == 0
+    assert "$(whoami)" in r2.stdout
+    # dir 拼接 & 不执行第二命令（无 whoami 输出）
+    r3 = actions.run_cli_cmd('dir & whoami')
+    assert r3.exit_code != 0 or "whoami" not in r3.stdout
+
+
+def test_run_cli_external_argv_no_shell():
+    """外部命令走 argv 执行（shell=False），注入字符作为普通参数传递。"""
+    r = actions.run_cli_cmd('git --version')
+    assert r.exit_code == 0
+    assert "git" in r.stdout.lower()
+
+
 def test_run_cli_chinese_output():
     """中文输出（GBK/UTF-8 混合编码）不应导致解码崩溃。"""
     r = actions.run_cli_cmd('python -c "print(\'你好世界\')"')

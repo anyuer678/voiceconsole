@@ -2,6 +2,7 @@
 
 import fnmatch
 import os
+import shlex
 import subprocess
 import sys
 import time
@@ -28,13 +29,92 @@ def _decode(raw: bytes) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
-def run_cli_cmd(command: str, cwd: str | None = None, timeout_ms: int = 10_000) -> CLIResult:
-    """执行命令，返回结构化结果；超时按 exit_code=124 处理。"""
+# ---- 内建命令原生执行（不产生子进程，彻底消除 shell 注入面） ----
+# 这些命令是 shell 内建（cmd/bash），argv 方式无法直接执行；用 Python 原生实现。
+_BUILTIN_DIR = {"ls", "dir"}
+_BUILTIN_CD = {"cd", "pwd"}
+_BUILTIN_CAT = {"cat", "type"}
+_BUILTIN_ECHO = {"echo"}
+
+
+def _split_command(command: str) -> list[str]:
+    """把命令字符串拆成 argv。
+
+    Windows：用 posix=False 保留 `C:\\path` 反斜杠，随后剥离参数首尾的成对引号
+    （posix=True 会吞掉反斜杠）。这样引号内空格合并为一个参数，且反斜杠路径不被破坏。
+    """
+    if sys.platform == "win32":
+        args = shlex.split(command, posix=False)
+        return [a[1:-1] if len(a) >= 2 and a[0] == '"' and a[-1] == '"' else a
+                for a in args]
+    return shlex.split(command)
+
+
+def _run_builtin(args: list[str], cwd: str | None) -> CLIResult:
+    """内建命令的原生实现：ls/dir/cd/pwd/cat/type。返回 CLIResult 兼容结构。"""
+    cmd = args[0].lower()
     start = time.monotonic()
     try:
+        base = os.path.abspath(cwd) if cwd else os.getcwd()
+        if cmd in _BUILTIN_DIR:
+            target = os.path.join(base, args[1]) if len(args) > 1 else base
+            if not os.path.isdir(target):
+                return CLIResult("", f"目录不存在: {target}", 1,
+                                 int((time.monotonic() - start) * 1000))
+            names = sorted(os.listdir(target))
+            lines = []
+            for n in names:
+                full = os.path.join(target, n)
+                suffix = "/" if os.path.isdir(full) else ""
+                lines.append(n + suffix)
+            return CLIResult("\n".join(lines) + "\n", "", 0,
+                             int((time.monotonic() - start) * 1000))
+        if cmd == "cd":
+            target = os.path.join(base, args[1]) if len(args) > 1 else base
+            if not os.path.isdir(target):
+                return CLIResult("", f"目录不存在: {target}", 1,
+                                 int((time.monotonic() - start) * 1000))
+            os.chdir(target)
+            return CLIResult("", "", 0, int((time.monotonic() - start) * 1000))
+        if cmd == "pwd":
+            return CLIResult(os.getcwd() + "\n", "", 0,
+                             int((time.monotonic() - start) * 1000))
+        if cmd in _BUILTIN_CAT:
+            target = os.path.join(base, args[1]) if len(args) > 1 else None
+            if target is None:
+                return CLIResult("", "用法: cat <文件>", 1,
+                                 int((time.monotonic() - start) * 1000))
+            if not os.path.isfile(target):
+                return CLIResult("", f"文件不存在: {target}", 1,
+                                 int((time.monotonic() - start) * 1000))
+            with open(target, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            return CLIResult(content, "", 0, int((time.monotonic() - start) * 1000))
+        if cmd == "echo":
+            return CLIResult(" ".join(args[1:]) + "\n", "", 0,
+                             int((time.monotonic() - start) * 1000))
+    except OSError as e:
+        return CLIResult("", str(e), 1, int((time.monotonic() - start) * 1000))
+    return CLIResult("", f"不支持的内建命令: {cmd}", 2,
+                     int((time.monotonic() - start) * 1000))
+
+
+def run_cli_cmd(command: str, cwd: str | None = None, timeout_ms: int = 10_000) -> CLIResult:
+    """执行命令，返回结构化结果；超时按 exit_code=124 处理。
+
+    安全设计：外部命令用 argv 直接执行（shell=False），内建命令走 Python 原生实现，
+    不经过任何 shell——`;`/`&`/`|`/`$()` 等字符无 shell 语义，命令注入面被消除。
+    """
+    start = time.monotonic()
+    try:
+        args = _split_command(command)
+        if not args:
+            return CLIResult("", "空命令", 1, int((time.monotonic() - start) * 1000))
+        if args[0].lower() in _BUILTIN_DIR | _BUILTIN_CD | _BUILTIN_CAT | _BUILTIN_ECHO:
+            return _run_builtin(args, cwd)
         proc = subprocess.run(
-            command,
-            shell=True,
+            args,
+            shell=False,
             cwd=cwd,
             capture_output=True,
             timeout=timeout_ms / 1000,
@@ -44,7 +124,7 @@ def run_cli_cmd(command: str, cwd: str | None = None, timeout_ms: int = 10_000) 
         out = _decode(e.stdout) if e.stdout else ""
         err = _decode(e.stderr) if e.stderr else ""
         code = 124
-    except OSError as e:
+    except (OSError, ValueError) as e:
         out, err, code = "", str(e), 1
     elapsed_ms = int((time.monotonic() - start) * 1000)
     return CLIResult(stdout=out, stderr=err, exit_code=code, elapsed_ms=elapsed_ms)

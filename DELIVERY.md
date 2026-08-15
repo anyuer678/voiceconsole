@@ -55,6 +55,11 @@ requirements.txt / pyproject.toml
 3. `_handle_text` 的 `find_file` 未捕获 `NotADirectoryError`（目录不存在直接崩溃）→ 捕获并播报「目录不存在」
 4. `SafetyEngine` 新增 `pending_ids()` 公共方法，供 Web 面板发现并应答确认流（非破坏性扩展）
 
+**安全加固（消除 shell 注入面）**
+
+1. `safety.py` 元字符表补 `&`：单 `&` 命令拼接（`dir & whoami`）此前被误放行 → 现拒绝
+2. `actions.run_cli_cmd` 改为**不经 shell 执行**：外部命令拆分为 argv 后 `subprocess.run(args, shell=False)`；内建命令（`ls`/`dir`/`cd`/`pwd`/`cat`/`type`/`echo`）用 Python 原生实现（`os.listdir`/`os.chdir`/读文件/回显）。即使元字符检查被绕过，`;`/`&`/`|`/`$()`/`` ` `` 也仅是普通字符，无 shell 执行语义——命令注入面从根上消除（新增测试 `test_run_cli_builtin_no_shell` / `test_run_cli_external_argv_no_shell`）
+
 **前端新增（webui.py，零新依赖）**
 
 - 形态：标准库 `http.server`（`ThreadingHTTPServer`）起本地 Web 控制台，仅绑定 `127.0.0.1`，内嵌单页 HTML/JS（无外部 CDN，离线可用）
