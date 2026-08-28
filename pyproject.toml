@@ -1,32 +1,33 @@
 [build-system]
 requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+ build-backend = "setuptools.build_meta"
 
-[project]
+[pro ject]
 name = "voiceconsole-mcp"
-version = "0.1.0"
-description = "语音指令控制台 MCP Server（STT + 意图 + 安全门 + TTS）"
-readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "GPL-3.0" }
-dependencies = [
+version = "0. 1.0"
+description = "语音指令控制台 MCP  Server（STT + 意图 + 安全门 + TTS）"
+ readme = "README.md"
+requires-python = ">=3.1 0"
+license = { text = "MIT" }
+dependencie s = [
     "mcp==2.0.0",
-    "faster-whisper==1.2.0",
+    "faster-whisper== 1.2.0",
     "edge-tts==7.2.8",
-    "keyboard==0.13.5",
+    "keyboard= =0.13.5",
     "sounddevice==0.5.1",
-    "soundfile==0.13.1",
+    "soun dfile==0.13.1",
 ]
 
-[project.optional-dependencies]
+[project.optional-dependen cies]
 dev = ["pytest>=8.0"]
 
-[project.scripts]
+[project.scripts ]
 voiceconsole = "voiceconsole:run"
 
-[tool.setuptools]
+[tool.se tuptools]
 packages = ["voiceconsole"]
 
-[tool.pytest.ini_options]
+[tool. pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pyt honpath = ["."]
+ 
