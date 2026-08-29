@@ -94,3 +94,6 @@ class SafetyGate:
             ):
                 return True
         return False
+
+# Backward-compatible alias
+SafetyEngine = SafetyGate
