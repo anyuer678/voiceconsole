@@ -1,5 +1,7 @@
 """测试执行体：CLI 运行、文件搜索、打开文件夹、TTS 转调。"""
 
+import sys
+
 import pytest
 
 from voiceconsole import actions
@@ -92,7 +94,9 @@ def test_open_in_file_manager_mock(monkeypatch):
 
     monkeypatch.setattr(actions.subprocess, "Popen", fake_popen)
     assert actions.open_in_file_manager("C:/") is True
-    assert calls and calls[0][0] == "explorer"
+    # 期望值随平台变化：win32=explorer、darwin=open、其他=xdg-open
+    expected = {"win32": "explorer", "darwin": "open"}.get(sys.platform, "xdg-open")
+    assert calls and calls[0][0] == expected
 
 
 def test_open_in_file_manager_error(monkeypatch):
