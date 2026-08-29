@@ -10,7 +10,7 @@ DENY_PREFIXES = (
     "bash ", "shutdown", "passwd", "chpasswd", "net user",
 )
 ALLOW_PREFIXES = (
-    "ls", "cd", "git status", "git log", "pwd", "where",
+    "ls", "cd", "cat", "git status", "git log", "pwd", "where",
     "systeminfo", "tasklist", "dir", "ping", "ps", "top",
 )
 CONFIRM_TIMEOUT_S = 30
@@ -29,7 +29,7 @@ class ToolDeniedError(RuntimeError):
 
 
 class _ConfirmEntry:
-    __slots__ = ("confirm_id", "tool", "args", "state", "deadline")
+    __slots__ = ("confirm_id", "tool", "args", "state", "deadline", "_event")
 
     def __init__(self, confirm_id: str, tool: str, args: dict):
         self.confirm_id = confirm_id
@@ -37,6 +37,7 @@ class _ConfirmEntry:
         self.args = args
         self.state = "pending"
         self.deadline = time.time() + CONFIRM_TIMEOUT_S
+        self._event = threading.Event()
 
 
 class SafetyGate:
@@ -95,5 +96,30 @@ class SafetyGate:
                 return True
         return False
 
-# Backward-compatible alias
-SafetyEngine = SafetyGate
+    def start_confirm_flow(self, tool: str, args: dict) -> str:
+        """Start a confirmation flow. Returns a confirm_id."""
+        confirm_id = str(uuid.uuid4())
+        with self._lock:
+            self._pending[confirm_id] = _ConfirmEntry(confirm_id, tool, args)
+        return confirm_id
+
+    def resolve_confirm(self, confirm_id: str, approved: bool) -> bool:
+        """Resolve a confirmation. Returns True if resolved."""
+        with self._lock:
+            entry = self._pending.get(confirm_id)
+            if entry is None or entry.state != "pending":
+                return False
+            entry.state = "approved" if approved else "denied"
+            entry._event.set()
+            return True
+
+    def await_confirm(self, confirm_id: str, timeout_s: float = 30) -> bool:
+        """Wait for confirmation. Returns True if approved."""
+        with self._lock:
+            entry = self._pending.get(confirm_id)
+            if entry is None:
+                return False
+        entry._event.wait(timeout_s)
+        with self._lock:
+            return entry.state == "approved"
+
