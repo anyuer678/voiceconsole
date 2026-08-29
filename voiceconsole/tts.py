@@ -1,6 +1,7 @@
 """文本转语音：edge-tts（在线合成）或系统 TTS（离线），尽力播报不抛错。"""
 
 import asyncio
+import base64
 import os
 import subprocess
 import sys
@@ -54,7 +55,12 @@ async def _edge_speak_async(text: str) -> bool:
 
 
 def _system_speak(text: str) -> bool:
-    """Windows PowerShell System.Speech（需系统装有对应语音包）。"""
+    """Windows PowerShell System.Speech（需系统装有对应语音包）。
+
+    走 -EncodedCommand（Base64/UTF-16LE）传递脚本：播报内容含命令输出，
+    明文拼接 -Command 会被 PowerShell 二次解析（引号/元字符注入面），
+    编码传递后内容不再参与任何 shell 解析。
+    """
     if sys.platform != "win32":
         return False
     escaped = text.replace("'", "''")
@@ -62,9 +68,10 @@ def _system_speak(text: str) -> bool:
         "Add-Type -AssemblyName System.Speech; "
         f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{escaped}')"
     )
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
     try:
         subprocess.run(
-            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script],
+            ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-EncodedCommand", encoded],
             capture_output=True,
             timeout=30,
         )
