@@ -33,7 +33,6 @@ def test_allow_whitelist():
         "ls",
         "ls -la",
         "cd C:/Users",
-        "cat config.json",
         "git status",
         "git log --oneline",
         "pwd",
@@ -47,6 +46,26 @@ def test_allow_whitelist():
         "top",
     ]:
         assert e.check_command(cmd) == SafetyVerdict.ALLOWED, cmd
+
+
+def test_cat_not_allowed_without_confirm():
+    """cat 已移出白名单：读取任意路径的文件必须经过确认（防未确认任意文件读）。"""
+    e = SafetyEngine()
+    assert e.check_command("cat config.json") == SafetyVerdict.NEEDS_CONFIRM
+    assert e.check_command("cat C:/Users/me/secret.txt") == SafetyVerdict.NEEDS_CONFIRM
+
+
+def test_whitespace_normalization_no_bypass():
+    """连续空白/制表符不得绕过黑名单前缀匹配（'net  user' 曾被判为 needs_confirm）。"""
+    e = SafetyEngine()
+    for cmd in [
+        "net  user hacker /add",
+        "net\tuser x",
+        "rm  -rf /",
+        "del \t report.txt",
+        "sudo \t rm x",
+    ]:
+        assert e.check_command(cmd) == SafetyVerdict.DENIED, cmd
 
 
 def test_prefix_boundary_not_confused():
