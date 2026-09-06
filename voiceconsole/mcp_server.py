@@ -34,13 +34,17 @@ def _speak(text: str) -> None:
     name="run_cli",
     description="执行 shell 命令（白名单内直接执行，危险命令拒绝，其余需语音确认）。例句：run_cli(command='dir')",
 )
-def run_cli(command: str, cwd: str | None = None) -> dict:
+def run_cli(command: str, cwd: str | None = None, wait_confirm: bool = True) -> dict:
     """白名单执行命令，返回 stdout/stderr/exit_code/elapsed_ms。"""
     verdict = safety.check_command(command)
     if verdict == safety_mod.SafetyVerdict.DENIED:
         raise safety_mod.ToolDeniedError(f"命令被安全策略拒绝: {command}")
     if verdict == safety_mod.SafetyVerdict.NEEDS_CONFIRM:
         cid = safety.start_confirm_flow("run_cli", {"command": command})
+        if not wait_confirm:
+            # 非阻塞模式：把 confirm_id 交还客户端，由其调用 confirm(confirm_id=..., answer=...) 应答
+            return {"needs_confirm": True, "confirm_id": cid,
+                    "prompt": f"确认执行命令 {command}？", "timeout_s": 30}
         _speak(f"确认执行命令 {command}？")
         if not safety.await_confirm(cid):
             return {"stdout": "", "stderr": "用户未确认，已取消", "exit_code": 130, "elapsed_ms": 0}
@@ -95,10 +99,18 @@ def speak(text: str) -> dict:
 
 @server.tool(
     name="confirm",
-    description="发起并等待一次语音安全确认，超时默认拒绝。例句：confirm(prompt='确认执行该操作？')",
+    description=(
+        "发起或应答一次语音安全确认。不带 confirm_id 时发起新确认并阻塞等待（超时默认拒绝）；"
+        "传入 confirm_id 与 answer 时应答已有确认流（用于批准 needs_confirm 返回的命令）。"
+        "例句：confirm(prompt='确认执行该操作？') / confirm(confirm_id='ab12', answer=true)"
+    ),
 )
-def confirm(prompt: str) -> dict:
-    """发起确认流程并阻塞等待应答（语音线程 resolve），返回 {'ok': bool}。"""
+def confirm(prompt: str = "", confirm_id: str = "", answer: bool = True) -> dict:
+    """应答已有确认流，或发起新确认并阻塞等待（语音线程 resolve）。"""
+    if confirm_id:
+        return {"ok": safety.resolve_confirm(confirm_id, bool(answer))}
+    if not prompt:
+        return {"ok": False, "error": "需要 prompt（发起新确认）或 confirm_id（应答既有确认）"}
     cid = safety.start_confirm_flow("confirm", {"prompt": prompt})
     _speak(prompt)
     ok = safety.await_confirm(cid)
