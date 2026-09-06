@@ -17,7 +17,7 @@ DENY_PREFIXES = (
 )
 # 子串级拒绝：出现在命令任意位置都拒绝（前缀匹配盖不住 PowerShell 内联注入）
 DENY_SUBSTRINGS = (
-    "-enc ", "-encoded ", "-encodedcommand", "-e ", "iex(", "invoke-expression",
+    "-enc ", "-encoded ", "-encodedcommand", "iex(", "invoke-expression",
     "downloadstring", "frombase64", "net.webclient", "start-process -verb runas",
     # rmdir/rd 的递归形态（Unix 裸 rmdir 只删空目录，保留 needs_confirm 语义）
     "rmdir /s", "rmdir -r", "rd /s", "rd -r",
@@ -82,6 +82,9 @@ class SafetyEngine:
         if self._match_prefix(low, self._deny, allow_dot=True):
             return SafetyVerdict.DENIED
         if any(sub in low for sub in DENY_SUBSTRINGS):
+            return SafetyVerdict.DENIED
+        # powershell -e <b64> 是 -EncodedCommand 的短写，仅在 PS 上下文中拦 "-e"
+        if re.search(r'(?:^| )(?:powershell|pwsh)(?:\.exe)? -e ', low):
             return SafetyVerdict.DENIED
         if self._confirm_mode == "all":
             return SafetyVerdict.NEEDS_CONFIRM
