@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-71%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-75%20passed-brightgreen)](tests/)
 [![MCP](https://img.shields.io/badge/MCP-Server-000000)](voiceconsole/)
 
 本地语音控制台：STT 识别 → 意图解析 → 安全门 → 工具执行 → TTS 播报。以 MCP Server 形态提供 5 个工具，可被任意 MCP 客户端调用。
@@ -63,7 +63,7 @@ voiceconsole/
   intent.py           规则意图解析 + 工具映射
   stt.py / tts.py     STT / TTS 引擎封装（含降级）
   webui.py            本地 Web 控制台（零依赖）
-tests/                pytest 测试（71 例，含真实 stdio 子进程握手）
+tests/                pytest 测试（75 例，含真实 stdio 子进程握手）
 ```
 
 ## 安全模型
