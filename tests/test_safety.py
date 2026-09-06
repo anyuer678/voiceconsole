@@ -203,3 +203,17 @@ def test_rmdir_plain_still_needs_confirm():
     """Unix 裸 rmdir 只删空目录：保持 needs_confirm，不被新黑名单误伤。"""
     e = SafetyEngine()
     assert e.check_command("rmdir junk") == SafetyVerdict.NEEDS_CONFIRM
+
+
+def test_powershell_short_e_denied():
+    """powershell -e <b64> 是 -EncodedCommand 短写，仅 PS 上下文拦截。"""
+    e = SafetyEngine()
+    assert e.check_command("powershell -e SQBFAFgA") == SafetyVerdict.DENIED
+    assert e.check_command("pwsh -e SQBFAFgA") == SafetyVerdict.DENIED
+    assert e.check_command("powershell.exe -e QQ==") == SafetyVerdict.DENIED
+
+
+def test_dash_e_elsewhere_not_denied():
+    """非 PS 上下文的 -e 参数不再被一刀切拒绝（降级为需确认）。"""
+    e = SafetyEngine()
+    assert e.check_command("grep -e foo bar.txt") == SafetyVerdict.NEEDS_CONFIRM
