@@ -224,7 +224,24 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             self._json({"error": "not found"}, 404)
 
+    _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+    def _same_origin(self) -> bool:
+        """DNS-rebinding / CSRF 防线：Host 必须是本机回环地址；携带 Origin 时
+        其主机名同样必须为本机回环（跨站浏览器请求一律拒绝）。"""
+        host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]").lower()
+        if host not in self._LOCAL_HOSTS:
+            return False
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        ohost = (urlparse(origin).hostname or "").lower()
+        return ohost in self._LOCAL_HOSTS
+
     def do_POST(self):
+        if not self._same_origin():
+            self._json({"error": "cross-origin request rejected"}, 403)
+            return
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", 0) or 0)
         raw = self.rfile.read(length) if length else b"{}"

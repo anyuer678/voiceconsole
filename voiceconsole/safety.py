@@ -8,6 +8,19 @@ import uuid
 DENY_PREFIXES = (
     "rm ", "shred", "dd ", "mkfs", "curl ", "wget ", "sudo ", "mv ", "del ",
     "bash ", "shutdown", "passwd", "chpasswd", "net user",
+    # Windows 破坏性命令与高危工具（原黑名单只覆盖 Unix 类）
+    "format ", "remove-item", "erase ", "ri ", "del /",
+    "reg ", "regedit", "vssadmin", "bcdedit", "diskpart", "cipher ",
+    "taskkill", "tskill", "schtasks", "sc ", "wmic ", "psexec",
+    "certutil", "bitsadmin", "rundll32", "regsvr32", "mshta",
+    "dism ", "sfc ", "wevtutil", "net localgroup",
+)
+# 子串级拒绝：出现在命令任意位置都拒绝（前缀匹配盖不住 PowerShell 内联注入）
+DENY_SUBSTRINGS = (
+    "-enc ", "-encoded ", "-encodedcommand", "-e ", "iex(", "invoke-expression",
+    "downloadstring", "frombase64", "net.webclient", "start-process -verb runas",
+    # rmdir/rd 的递归形态（Unix 裸 rmdir 只删空目录，保留 needs_confirm 语义）
+    "rmdir /s", "rmdir -r", "rd /s", "rd -r",
 )
 ALLOW_PREFIXES = (
     "ls", "cd", "git status", "git log", "pwd", "where",
@@ -67,6 +80,8 @@ class SafetyEngine:
         if any(ch in low for ch in _SHELL_METACHARS):
             return SafetyVerdict.DENIED
         if self._match_prefix(low, self._deny, allow_dot=True):
+            return SafetyVerdict.DENIED
+        if any(sub in low for sub in DENY_SUBSTRINGS):
             return SafetyVerdict.DENIED
         if self._confirm_mode == "all":
             return SafetyVerdict.NEEDS_CONFIRM

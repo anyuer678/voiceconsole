@@ -22,6 +22,9 @@ class STTResult:
     duration_ms: int
 
 
+API_FALLBACK_CONFIDENCE = 0.75  # API 模式无置信度时的保守回退值
+
+
 def init_stt(engine: str = "local", model: str = "base") -> None:
     """初始化识别引擎；engine ∈ auto|local|api，auto 按 OPENAI_API_KEY 自动判定。"""
     global _engine, _model_name, _recognizer
@@ -72,6 +75,7 @@ def _transcribe_local(wav_bytes: bytes) -> STTResult:
 def _transcribe_api(wav_bytes: bytes) -> STTResult:
     """OpenAI /v1/audio/transcriptions（multipart 上传，标准库实现）。"""
     import json
+    import math
     import urllib.request
     import uuid
 
@@ -104,9 +108,18 @@ def _transcribe_api(wav_bytes: bytes) -> STTResult:
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     text = (data.get("text") or "").strip()
+    # API 不返回置信度：取保守中性值而非虚报 0.9；若响应自带置信度/对数概率则优先采用
+    confidence = data.get("confidence")
+    if confidence is None and data.get("avg_logprob") is not None:
+        try:
+            confidence = min(1.0, max(0.0, math.exp(float(data["avg_logprob"]))))
+        except (TypeError, ValueError):
+            confidence = None
+    if confidence is None:
+        confidence = API_FALLBACK_CONFIDENCE
     return STTResult(
         text=text,
-        confidence=0.9,
+        confidence=float(confidence),
         language="zh",
         duration_ms=int((time.monotonic() - start) * 1000),
     )
