@@ -9,13 +9,20 @@ description = "语音指令控制台 MCP Server（STT + 意图 + 安全门 + TTS
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+    "mcp>=2.0",
+    "faster-whisper>=1.2",
+    "edge-tts>=7.2",
+    "keyboard>=0.13",
+    "sounddevice>=0.5",
+    "soundfile>=0.13",
+]
 
 [project.scripts]
 voiceconsole = "main:main"
 
 [tool.setuptools]
-py-modules = ["main", "safety", "stt", "intent", "tts", "shell", "config"]
+py-modules = ["main", "safety", "stt", "intent", "tts", "config", "actions", "mcp_server", "webui"]
 include-package-data = true
 
 [tool.pytest.ini_options]
