@@ -5,8 +5,12 @@ import os
 import shlex
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
+
+# 线程安全的 CWD 存储，替换 os.chdir 的全局污染
+_thread_cwd = threading.local()
 
 from . import tts
 
@@ -74,10 +78,11 @@ def _run_builtin(args: list[str], cwd: str | None) -> CLIResult:
             if not os.path.isdir(target):
                 return CLIResult("", f"目录不存在: {target}", 1,
                                  int((time.monotonic() - start) * 1000))
-            os.chdir(target)
+            # 用 thread-local 存储 CWD，避免 os.chdir 污染进程全局 CWD
+            _thread_cwd.cwd = os.path.realpath(target)
             return CLIResult("", "", 0, int((time.monotonic() - start) * 1000))
         if cmd == "pwd":
-            return CLIResult(os.getcwd() + "\n", "", 0,
+            return CLIResult(getattr(_thread_cwd, 'cwd', base) + "\n", "", 0,
                              int((time.monotonic() - start) * 1000))
         if cmd in _BUILTIN_CAT:
             target = os.path.join(base, args[1]) if len(args) > 1 else None
