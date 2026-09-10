@@ -3,7 +3,7 @@
 > 对着电脑说一句「打开桌面」或「执行 dir」，它就执行并播报结果——给 MCP / CLI 加一层本地语音入口。
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-80%20passed-brightgreen)](tests/)
 [![MCP](https://img.shields.io/badge/MCP-Server-000000)](voiceconsole/)
 
@@ -91,4 +91,4 @@ python -m pytest tests/ -v
 
 ## License
 
-[GPL-3.0](LICENSE) — Copyright (C) 2026 anyuer678
+[MIT License](LICENSE) — Copyright (c) 2026 anyuer678
