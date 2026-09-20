@@ -36,6 +36,10 @@ def load_config(path: str | None = None) -> dict[str, Any]:
             cfg[_KEY_ALIASES.get(k, k)] = v
         if "confirm" in data and "confirm_mode" not in data:
             cfg["confirm_mode"] = "all" if data["confirm"] else "dangerous-only"
+    # 环境变量覆盖路径沙箱根（CI/测试用）：PATHSEP 分隔
+    env_roots = os.environ.get("VOICECONSOLE_PATH_ROOTS", "").strip()
+    if env_roots:
+        cfg["path_roots"] = [p for p in env_roots.split(os.pathsep) if p]
     validate_config(cfg)
     return cfg
 

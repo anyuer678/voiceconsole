@@ -17,4 +17,8 @@ def server_env():
     env = dict(os.environ)
     env["VOICECONSOLE_NO_TTS"] = "1"
     env["VOICECONSOLE_CONFIG"] = TEST_CONFIG
+    # 子进程 MCP：允许 pytest 临时目录与仓库目录（find_file 等路径沙箱）
+    import tempfile as _tf
+    roots = [os.path.expanduser("~"), os.getcwd(), _tf.gettempdir(), ROOT]
+    env["VOICECONSOLE_PATH_ROOTS"] = os.pathsep.join(roots)
     return env
