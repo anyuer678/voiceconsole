@@ -1,9 +1,13 @@
 {
   "stt_engine": "auto",
-  "tts_engine": "edge",
+  "tts_engine": "system",
+  "tts_allow_network": false,
   "hotkey": "<ctrl>+<shift>+space",
   "allowlist": [],
   "denylist": [],
   "confirm_mode": "dangerous-only",
+  "confirm_authority": "local-ui",
+  "path_roots": null,
+  "audit_path": null,
   "timeout_ms": 10000
 }

@@ -6,11 +6,18 @@ from typing import Any
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "stt_engine": "auto",
-    "tts_engine": "edge",
+    # 默认 system，避免 edge-tts 静默出网；需要 edge 时请显式 tts_engine=edge + tts_allow_network=true
+    "tts_engine": "system",
+    "tts_allow_network": False,
     "hotkey": "<ctrl>+<shift>+space",
     "allowlist": [],
     "denylist": [],
     "confirm_mode": "dangerous-only",
+    # local-ui（默认）：确认权在本机；mcp：允许 MCP confirm 应答（不推荐）
+    "confirm_authority": "local-ui",
+    # find_file / open_folder 允许根；null 表示默认 home + cwd
+    "path_roots": None,
+    "audit_path": None,
     "timeout_ms": 10000,
 }
 
@@ -41,8 +48,13 @@ def validate_config(cfg: dict[str, Any]) -> None:
         raise ValueError("tts_engine 必须是 edge|system")
     if cfg.get("confirm_mode") not in ("dangerous-only", "all"):
         raise ValueError("confirm_mode 必须是 dangerous-only|all")
+    if str(cfg.get("confirm_authority", "local-ui")).lower() not in ("local-ui", "mcp"):
+        raise ValueError("confirm_authority 必须是 local-ui|mcp")
     if not isinstance(cfg.get("allowlist"), list) or not isinstance(cfg.get("denylist"), list):
         raise ValueError("allowlist/denylist 必须是数组")
+    roots = cfg.get("path_roots")
+    if roots is not None and not isinstance(roots, list):
+        raise ValueError("path_roots 必须是 null 或字符串数组")
     if not isinstance(cfg.get("timeout_ms"), int) or cfg.get("timeout_ms") <= 0:
         raise ValueError("timeout_ms 必须是正整数")
     if not isinstance(cfg.get("hotkey"), str) or not cfg.get("hotkey"):
