@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 
@@ -11,6 +12,11 @@ class PathSandboxError(PermissionError):
 
 
 def default_roots() -> list[str]:
+    """默认允许根：用户主目录 + 当前工作目录 + 系统临时目录。
+
+    含 temp 是为了覆盖工具/测试在 /tmp 或 %TEMP% 下的合法工作目录；
+    仍 fail-closed 拒绝这些根之外的路径。
+    """
     roots = []
     home = str(Path.home())
     if home:
@@ -18,6 +24,12 @@ def default_roots() -> list[str]:
     try:
         roots.append(os.getcwd())
     except OSError:
+        pass
+    try:
+        td = tempfile.gettempdir()
+        if td:
+            roots.append(td)
+    except Exception:
         pass
     # 去重保序
     seen = set()
