@@ -12,10 +12,10 @@ class PathSandboxError(PermissionError):
 
 
 def default_roots() -> list[str]:
-    """默认允许根：用户主目录 + 当前工作目录 + 系统临时目录。
+    """生产默认允许根：仅用户主目录 + 当前工作目录。
 
-    含 temp 是为了覆盖工具/测试在 /tmp 或 %TEMP% 下的合法工作目录；
-    仍 fail-closed 拒绝这些根之外的路径。
+    **不要**把系统临时目录放进生产默认（/tmp 世界可写，会削弱沙箱）。
+    测试/CI 请用环境变量 VOICECONSOLE_PATH_ROOTS 显式扩展。
     """
     roots = []
     home = str(Path.home())
@@ -24,12 +24,6 @@ def default_roots() -> list[str]:
     try:
         roots.append(os.getcwd())
     except OSError:
-        pass
-    try:
-        td = tempfile.gettempdir()
-        if td:
-            roots.append(td)
-    except Exception:
         pass
     # 去重保序
     seen = set()

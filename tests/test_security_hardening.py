@@ -68,3 +68,17 @@ def test_audit_written(tmp_path):
     assert log.exists()
     content = log.read_text(encoding="utf-8")
     assert "find_file" in content
+
+
+def test_production_default_roots_exclude_temp_by_default(monkeypatch):
+    """生产默认不得把系统临时目录当白名单（防假加固）。"""
+    import tempfile
+    from voiceconsole import path_sandbox
+    monkeypatch.delenv("VOICECONSOLE_PATH_ROOTS", raising=False)
+    roots = path_sandbox.default_roots()
+    td = os.path.normcase(os.path.realpath(tempfile.gettempdir()))
+    normed = {os.path.normcase(os.path.realpath(r)) for r in roots}
+    # cwd/home 可能就是 temp 的父级；只要求 roots 列表本身不含 temp 作为独立默认项
+    assert td not in normed or all(
+        os.path.normcase(os.path.realpath(r)) != td for r in roots
+    ), roots
