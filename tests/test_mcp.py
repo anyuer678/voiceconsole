@@ -3,6 +3,7 @@
 import asyncio
 import os
 import sys
+import tempfile
 import threading
 import time
 
@@ -108,16 +109,19 @@ def test_call_find_file(server_env, tmp_path):
 
 # ---------- 单元级：确认流与工具编排 ----------
 
-def _configure_all_confirm():
-    mcp_server.configure(
-        {
-            "confirm_mode": "all",
-            "tts_engine": "system",
-            "timeout_ms": 2000,
-            "allowlist": [],
-            "denylist": [],
-        }
-    )
+def _configure_all_confirm(extra: dict | None = None):
+    cfg = {
+        "confirm_mode": "all",
+        "tts_engine": "system",
+        "timeout_ms": 2000,
+        "allowlist": [],
+        "denylist": [],
+        "confirm_authority": "local-ui",
+        "path_roots": [os.path.expanduser("~"), os.getcwd(), tempfile.gettempdir()],
+    }
+    if extra:
+        cfg.update(extra)
+    mcp_server.configure(cfg)
     mcp_server.actions.speak_text = lambda text, engine="system": None
 
 
@@ -151,18 +155,18 @@ def test_run_cli_confirm_rejected(monkeypatch):
     assert r["exit_code"] == 130
 
 
-def test_open_folder_confirm_approved(monkeypatch):
+def test_open_folder_confirm_approved(monkeypatch, tmp_path):
     monkeypatch.setattr(mcp_server.actions, "open_in_file_manager", lambda p: True)
-    _configure_all_confirm()
+    _configure_all_confirm({"path_roots": [str(tmp_path), os.path.expanduser("~"), tempfile.gettempdir()]})
     _resolve_pending(True)
-    assert mcp_server.open_folder("C:/tmp") == {"ok": True}
+    assert mcp_server.open_folder(str(tmp_path)) == {"ok": True}
 
 
-def test_open_folder_confirm_rejected(monkeypatch):
+def test_open_folder_confirm_rejected(monkeypatch, tmp_path):
     monkeypatch.setattr(mcp_server.actions, "open_in_file_manager", lambda p: False)
-    _configure_all_confirm()
+    _configure_all_confirm({"path_roots": [str(tmp_path), os.path.expanduser("~"), tempfile.gettempdir()]})
     _resolve_pending(False)
-    r = mcp_server.open_folder("C:/tmp")
+    r = mcp_server.open_folder(str(tmp_path))
     assert r == {"ok": False, "error": "用户未确认，已取消"}
 
 
