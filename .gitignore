@@ -22,3 +22,8 @@ LLM_API_KEY*
 # 系统
 .DS_Store
 Thumbs.db
+# coverage
+.coverage
+htmlcov/
+coverage.xml
+
