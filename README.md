@@ -1,5 +1,7 @@
 # Voice Console —— 语音指令控制台 MCP
 
+[![Tests](https://github.com/anyuer678/voiceconsole/actions/workflows/test.yml/badge.svg)](https://github.com/anyuer678/voiceconsole/actions/workflows/test.yml)
+
 # 安全硬化说明（合并入 README 顶部或「安全」章节）
 
 > **状态**：`local-tool` · 语音控制将执行本机命令 · **仅在可信 MCP 宿主使用**  
