@@ -23,7 +23,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-80%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-89%20passed-brightgreen)](tests/)
 [![MCP](https://img.shields.io/badge/MCP-Server-000000)](voiceconsole/)
 
 本地语音控制台：STT 识别 → 意图解析 → 安全门 → 工具执行 → TTS 播报。以 MCP Server 形态提供 5 个工具，可被任意 MCP 客户端调用。
