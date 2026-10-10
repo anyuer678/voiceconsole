@@ -155,6 +155,35 @@ def test_run_cli_confirm_rejected(monkeypatch):
     assert r["exit_code"] == 130
 
 
+def test_run_cli_cwd_outside_roots_denied(monkeypatch, tmp_path):
+    """cwd 越出 path_roots 直接拒绝（exit 126），不触发执行也不触发确认流。"""
+    called = []
+    monkeypatch.setattr(
+        mcp_server.actions,
+        "run_cli_cmd",
+        lambda **k: called.append(k) or CLIResult("ok", "", 0, 1),
+    )
+    _configure_all_confirm({"path_roots": [str(tmp_path)]})
+    outside = tmp_path.parent  # 不在 roots 内
+    r = mcp_server.run_cli("dir", cwd=str(outside))
+    assert r["exit_code"] == 126
+    assert "越界" in r["stderr"]
+    assert not called
+
+
+def test_run_cli_cwd_inside_roots_ok(monkeypatch, tmp_path):
+    called = []
+    monkeypatch.setattr(
+        mcp_server.actions,
+        "run_cli_cmd",
+        lambda command, cwd=None, timeout_ms=2000: called.append(cwd) or CLIResult("ok", "", 0, 1),
+    )
+    _configure_all_confirm({"path_roots": [str(tmp_path)], "confirm_mode": "dangerous-only"})
+    r = mcp_server.run_cli("dir", cwd=str(tmp_path))
+    assert r["exit_code"] == 0
+    assert called and os.path.realpath(called[0]) == os.path.realpath(str(tmp_path))
+
+
 def test_open_folder_confirm_approved(monkeypatch, tmp_path):
     monkeypatch.setattr(mcp_server.actions, "open_in_file_manager", lambda p: True)
     _configure_all_confirm({"path_roots": [str(tmp_path), os.path.expanduser("~"), tempfile.gettempdir()]})

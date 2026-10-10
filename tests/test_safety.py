@@ -151,6 +151,16 @@ def test_resolve_unknown_id():
     assert not e.await_confirm("nope", timeout_s=0.1)
 
 
+def test_confirm_replay_denied():
+    """已决/已消费的 confirm_id 重放一律拒绝（一次性消费，防重放放行）。"""
+    e = SafetyEngine()
+    cid = e.start_confirm_flow("run_cli", {"command": "python x.py"})
+    assert e.resolve_confirm(cid, True)
+    assert not e.resolve_confirm(cid, True)  # 已 APPROVED，重放不放行
+    assert e.await_confirm(cid, timeout_s=1.0)  # 等待方一次性消费原结果
+    assert not e.resolve_confirm(cid, True)  # 消费后条目已移除
+
+
 def test_confirm_thread_safe():
     e = SafetyEngine()
     cid = e.start_confirm_flow("run_cli", {})
