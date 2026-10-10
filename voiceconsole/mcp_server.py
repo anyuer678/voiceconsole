@@ -64,7 +64,13 @@ def _audit(**fields) -> None:
     ),
 )
 def run_cli(command: str, cwd: str | None = None, wait_confirm: bool = True) -> dict:
-    """白名单执行命令，返回 stdout/stderr/exit_code/elapsed_ms。"""
+    """白名单执行命令，返回 stdout/stderr/exit_code/elapsed_ms。cwd 越界直接拒绝。"""
+    if cwd:
+        try:
+            cwd = path_sandbox.resolve_allowed(cwd, _path_roots())
+        except path_sandbox.PathSandboxError as e:
+            _audit(tool="run_cli", command=command, cwd=cwd, gate="path_denied", error=str(e), source="mcp")
+            return {"stdout": "", "stderr": f"cwd 越界已拒绝: {e}", "exit_code": 126, "elapsed_ms": 0}
     verdict = safety.check_command(command)
     if verdict == safety_mod.SafetyVerdict.DENIED:
         _audit(tool="run_cli", command=command, gate="denied", source="mcp")

@@ -110,13 +110,14 @@ class SafetyEngine:
         return cid
 
     def resolve_confirm(self, confirm_id: str, answer: bool) -> bool:
-        """应答确认；超时后的应答一律按拒绝处理，返回是否放行。"""
+        """应答确认；一次性消费——已决/已消费的 confirm_id 重放一律拒绝，返回是否放行。"""
         with self._cond:
             entry = self._pending.get(confirm_id)
             if entry is None:
                 return False
             if entry.state != "REQUESTED":
-                return entry.state == "APPROVED"
+                # 已被应答过（或已超时）：重放不返回原结果，直接拒绝，防止重放放行
+                return False
             if time.monotonic() > entry.deadline:
                 entry.state = "DENIED"
                 self._cond.notify_all()
@@ -136,7 +137,10 @@ class SafetyEngine:
                 if entry is None:
                     return False
                 if entry.state != "REQUESTED":
-                    return entry.state == "APPROVED"
+                    # 结果被等待方一次性消费后即从 pending 移除，防重放
+                    approved = entry.state == "APPROVED"
+                    del self._pending[confirm_id]
+                    return approved
                 remaining = entry.deadline - time.monotonic()
                 if remaining <= 0:
                     entry.state = "DENIED"

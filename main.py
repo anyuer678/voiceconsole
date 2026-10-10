@@ -50,10 +50,17 @@ def _handle_text(cfg, text: str) -> str | None:
         summary = (result.stdout or "").strip()[:200] or (result.stderr or "").strip()[:200] or f"完成（{result.elapsed_ms}ms）"
         _speak(cfg, f"执行结果：{summary}")
     elif tool == "open_folder":
-        if cfg["confirm_mode"] == "all" and not _ask_confirm(cfg, f"确认打开 {args['path']}？"):
+        try:
+            safe_path = mcp_server.path_sandbox.resolve_allowed(
+                args["path"], mcp_server._path_roots()
+            )
+        except mcp_server.path_sandbox.PathSandboxError:
+            _speak(cfg, f"路径不在允许范围内，已拒绝打开 {args['path']}")
+            return None
+        if cfg["confirm_mode"] == "all" and not _ask_confirm(cfg, f"确认打开 {safe_path}？"):
             _speak(cfg, "已取消")
             return None
-        ok = actions.open_in_file_manager(args["path"])
+        ok = actions.open_in_file_manager(safe_path)
         _speak(cfg, "已打开" if ok else "打开失败")
     elif tool == "find_file":
         try:
