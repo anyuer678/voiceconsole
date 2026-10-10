@@ -114,6 +114,10 @@ python -m pytest tests/ -v
 
 **安全声明**：本工具通过 `subprocess.run`（`shell=False`）执行命令，安全门包含 40+ 拒绝前缀和 shell 元字符拦截。命令分类采用默认拒绝策略（未知命令需确认后执行）。Web UI 绑定 `127.0.0.1` 并内置 CSRF/DNS-rebinding 防护，但本地其他进程仍可访问。本工具可执行本机任意白名单命令，请在可信环境中使用。
 
+## 生态
+
+voiceconsole 是标准 MCP server（`mcp>=2.0`，stdio 传输），可作为 [lumen](https://github.com/anyuer678/lumen)（24/7 Agent Runtime，内置 MCP 注册与 L2 人工确认）的语音入口插件。相关：[keyvault](https://github.com/anyuer678/keyvault)（LLM Key 本地加密管理）· 体系地图：[https://anyuer678.github.io/yuer.dev/map](https://anyuer678.github.io/yuer.dev/map)
+
 ## License
 
 [MIT License](LICENSE) — Copyright (c) 2026 anyuer678
