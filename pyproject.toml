@@ -21,6 +21,10 @@ dependencies = [
 [project.scripts]
 voiceconsole = "main:main"
 
+
+[project.urls]
+Repository = "https://github.com/anyuer678/voiceconsole"
+Issues = "https://github.com/anyuer678/voiceconsole/issues"
 [tool.setuptools]
 py-modules = ["main", "safety", "stt", "intent", "tts", "config", "actions", "mcp_server", "webui"]
 include-package-data = true
