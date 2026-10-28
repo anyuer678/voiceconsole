@@ -1,6 +1,7 @@
 """MCP 工具层：工具注册与执行编排（safety → path sandbox → actions → audit）。"""
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
 from . import actions, audit as audit_mod, safety as safety_mod
 from . import path_sandbox
@@ -74,7 +75,9 @@ def run_cli(command: str, cwd: str | None = None, wait_confirm: bool = True) -> 
     verdict = safety.check_command(command)
     if verdict == safety_mod.SafetyVerdict.DENIED:
         _audit(tool="run_cli", command=command, gate="denied", source="mcp")
-        raise safety_mod.ToolDeniedError(f"命令被安全策略拒绝: {command}")
+        # mcp>=2.2 对未预期异常只回 "Error executing tool ..."，拒绝原因会被吞掉；
+        # 抛 ToolError 才能让客户端看到 is_error=true 且带原因的结果。
+        raise ToolError(f"命令被安全策略拒绝: {command}")
     if verdict == safety_mod.SafetyVerdict.NEEDS_CONFIRM:
         cid = safety.start_confirm_flow("run_cli", {"command": command})
         _audit(tool="run_cli", command=command, gate="needs_confirm", confirm_id=cid, source="mcp")
