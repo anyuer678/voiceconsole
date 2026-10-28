@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 dependencies = [
-    "mcp>=2.0",
+    "mcp>=2.2.0",
     "faster-whisper>=1.2",
     "edge-tts>=7.2",
     "keyboard>=0.13",
